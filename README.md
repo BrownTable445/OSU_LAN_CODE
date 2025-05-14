@@ -9,6 +9,4 @@ This backend script is made for 5/18/2025 and may not work as intended in the fu
 
 If having any issues, feel free to make an issue request on Github or contact me at the UCDavis Rhythm Games Club Discord Server. I'm one of the officers.
 
-To open frontend run
-
-explorer.exe bar_char.html
+![image](https://github.com/user-attachments/assets/abcbc871-2bc8-4a02-862c-b0b377b09f7f)
