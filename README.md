@@ -1,9 +1,29 @@
-We have a Python virtual environment set up to prevent project conflicts
-To activate the venv, run
+# OSU LAN REAL-TIME TOURNAMENT GRAPHIC
+
+## About
+Imagine you want to host a tournament/lan. You can use an elimination tournament format, where winners of each round move on to the next. The issue with this approach is that it's time consuming to both plan and run. An alternative, easier approach is to host a multi and let everyone play on the same mappool. You can distribute prizes to top total scorers. As of May 2025, the osu tournament client doesn't provide this functionality, so this is why I created this script.
+
+This script listens for matches and displays total scores in real time.
+
+## Setup
+I highly recommend to use a Python virtual environment. To do so, run
+
+python3 -m venv .venv
+
+To activate the virtual environment run
 
 source .venv/bin/activate
 
-Tracker.py updates the leaderboard at most every 10 seconds. There's no need to update it every second.
+To install dependencies, run 
+
+pip install -r requirements.txt
+
+## Run
+To run the script, run
+
+python tracker.py REPLACE_WITH_ROOM_ID
+
+# Other
 
 This backend script is made for 5/18/2025 and may not work as intended in the future. Such causes could be related to osu api changes. For example, when writing this script, I noticed that osu api would return Score objects that didn't have a total_score member, even when the documentation specified so. Instead, I had to do some detective work to find Score.score
 

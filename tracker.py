@@ -1,6 +1,8 @@
 from flask import Flask, render_template, jsonify
 from ossapi import Ossapi
 import os
+import sys
+import argparse
 from dotenv import load_dotenv
 import traceback
 import schedule
@@ -31,7 +33,6 @@ with open('templates/leaderboard.html', 'w') as f:
             font-family: 'Arial', sans-serif;
             background-color: black;
             color: white;
-            overflow: hidden;
             margin: 0;
             padding: 20px;
         }
@@ -40,6 +41,9 @@ with open('templates/leaderboard.html', 'w') as f:
             width: 100%;
             max-width: 800px;
             margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         
         .title {
@@ -48,6 +52,30 @@ with open('templates/leaderboard.html', 'w') as f:
             font-weight: bold;
             margin-bottom: 20px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+        
+        #leaderboard {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 10px;
+            /* Customize scrollbar */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+        }
+        
+        /* Scrollbar styles for Webkit browsers */
+        #leaderboard::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #leaderboard::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        
+        #leaderboard::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
         }
         
         .bar-container {
@@ -177,6 +205,11 @@ with open('templates/leaderboard.html', 'w') as f:
         // Initialize players array
         let players = [];
         
+        // Auto-scroll variables
+        let autoScrollEnabled = true;
+        let autoScrollInterval = null;
+        let scrollSpeed = 1; // pixels per tick
+        
         // Function to update the leaderboard display
         function updateLeaderboard() {
             const leaderboard = document.getElementById('leaderboard');
@@ -263,7 +296,56 @@ with open('templates/leaderboard.html', 'w') as f:
                 
                 leaderboard.appendChild(barContainer);
             });
+            
+            // Start auto-scrolling if enabled
+            startAutoScroll();
         }
+        
+        // Function to manage auto-scrolling
+        function startAutoScroll() {
+            // Clear any existing interval
+            if (autoScrollInterval) {
+                clearInterval(autoScrollInterval);
+            }
+            
+            // Only start if enabled
+            if (autoScrollEnabled) {
+                const leaderboard = document.getElementById('leaderboard');
+                // Reset to top
+                leaderboard.scrollTop = 0;
+                
+                // Start a new interval
+                autoScrollInterval = setInterval(() => {
+                    // If we've scrolled to the bottom, go back to top
+                    if (leaderboard.scrollTop >= (leaderboard.scrollHeight - leaderboard.clientHeight)) {
+                        leaderboard.scrollTop = 0;
+                    } else {
+                        // Otherwise continue scrolling down
+                        leaderboard.scrollTop += scrollSpeed;
+                    }
+                }, 30); // Adjust timing for smoother scrolling
+            }
+        }
+        
+        // Toggle auto-scroll on space key (convenient for OBS setup)
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                autoScrollEnabled = !autoScrollEnabled;
+                if (autoScrollEnabled) {
+                    startAutoScroll();
+                } else if (autoScrollInterval) {
+                    clearInterval(autoScrollInterval);
+                }
+            }
+        });
+        
+        // Handle manual scrolling - disable auto-scroll when user scrolls
+        document.getElementById('leaderboard').addEventListener('wheel', () => {
+            autoScrollEnabled = false;
+            if (autoScrollInterval) {
+                clearInterval(autoScrollInterval);
+            }
+        });
         
         // Function to fetch scores from the API
         async function fetchScores() {
@@ -322,11 +404,11 @@ def get_scores():
         'match_name': match_name
     })
 
-def update_total_scores(room_id):
+def update_total_scores(match_id):
     global match_name, user_total_scores, player_avatars
     
     try:
-        match_response = api.match(room_id)
+        match_response = api.match(match_id)
         match_name = match_response.match.name
 
         user_id_to_name = defaultdict(str)
@@ -361,22 +443,26 @@ def update_total_scores(room_id):
         print(f"Error updating scores: {e}")
         traceback.print_exc()
 
-def scheduler_thread(room_id):
-    schedule.every(10).seconds.do(update_total_scores, room_id)
+def scheduler_thread(match_id):
+    schedule.every(10).seconds.do(update_total_scores, match_id)
     
     while True:
         schedule.run_pending()
         time.sleep(1)
 
 def main():
-    print("You can find room id by inviting yourself through '/invite YOUR_USERNAME' in your multiplay channel after you create it")
-    room_id = input("Please enter room id: ")
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description='OSU! Multi Total Score Leaderboard')
+    parser.add_argument('match_id', type=str, help='Match ID for the OSU multi lobby')
+    args = parser.parse_args()
+    
+    match_id = args.match_id
     
     # Initial update of scores
-    update_total_scores(room_id)
+    update_total_scores(match_id)
     
     # Start the scheduler in a separate thread
-    scheduler = Thread(target=scheduler_thread, args=(room_id,))
+    scheduler = Thread(target=scheduler_thread, args=(match_id,))
     scheduler.daemon = True
     scheduler.start()
     
