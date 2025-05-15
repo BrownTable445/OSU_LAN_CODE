@@ -7,21 +7,25 @@ This script listens for matches and displays total scores in real time.
 
 ## Setup
 I highly recommend to use a Python virtual environment. To do so, run
-
+```
 python3 -m venv .venv
+```
 
 To activate the virtual environment run
-
+```
 source .venv/bin/activate
+```
 
 To install dependencies, run 
-
+```
 pip install -r requirements.txt
+```
 
 ## Run
 To run the script, run
-
+```
 python tracker.py REPLACE_WITH_MATCH_ID
+```
 
 # Other
 
