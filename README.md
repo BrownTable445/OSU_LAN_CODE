@@ -21,7 +21,7 @@ pip install -r requirements.txt
 ## Run
 To run the script, run
 
-python tracker.py REPLACE_WITH_ROOM_ID
+python tracker.py REPLACE_WITH_MATCH_ID
 
 # Other
 
@@ -29,4 +29,5 @@ This backend script is made for 5/18/2025 and may not work as intended in the fu
 
 If having any issues, feel free to make an issue request on Github or contact me at the UCDavis Rhythm Games Club Discord Server. I'm one of the officers.
 
-![image](https://github.com/user-attachments/assets/abcbc871-2bc8-4a02-862c-b0b377b09f7f)
+![image](https://github.com/user-attachments/assets/805d5b32-632d-4284-a920-4c5afcbe6e59)
+
