@@ -63,12 +63,44 @@ with open('templates/leaderboard.html', 'w') as f:
         
         .bar {
             height: 100%;
-            background: linear-gradient(90deg, #66AAFF, #0066FF);
             transition: width 1s ease;
             position: absolute;
             top: 0;
             left: 0;
             z-index: 1;
+        }
+        
+        /* Different colors based on rank digits */
+        .rank-1digit {
+            background: linear-gradient(90deg, #FF6B6B, #FF0000); /* Red */
+        }
+        
+        .rank-2digit {
+            background: linear-gradient(90deg, #FFD166, #FF9900); /* Orange */
+        }
+        
+        .rank-3digit {
+            background: linear-gradient(90deg, #06D6A0, #00AA7F); /* Green */
+        }
+        
+        .rank-4digit {
+            background: linear-gradient(90deg, #118AB2, #073B4C); /* Blue */
+        }
+        
+        .rank-5digit {
+            background: linear-gradient(90deg, #9B5DE5, #7209B7); /* Purple */
+        }
+        
+        .rank-6digit {
+            background: linear-gradient(90deg, #F15BB5, #D90429); /* Pink */
+        }
+        
+        .rank-7digit {
+            background: linear-gradient(90deg, #2EC4B6, #00A896); /* Teal */
+        }
+        
+        .rank-more {
+            background: linear-gradient(90deg, #E9C46A, #E76F51); /* Amber/Coral */
         }
         
         .player-info {
@@ -150,24 +182,40 @@ with open('templates/leaderboard.html', 'w') as f:
             const leaderboard = document.getElementById('leaderboard');
             leaderboard.innerHTML = '';
             
-            // For ranking points, lower is better so we need to find the lowest score
-            const minScore = Math.min(...players.map(player => player.score), 100);
+            // Find the maximum score for scaling bars
+            const maxScore = Math.max(...players.map(player => player.score), 1);
             
-            // We want the bar to be inversely proportional to score
-            // Calculate max possible bar width for the lowest (best) score
             players.forEach((player, index) => {
                 // Create bar container
                 const barContainer = document.createElement('div');
                 barContainer.className = 'bar-container';
                 
-                // Create the actual bar - inverse scaling (lower score = longer bar)
+                // Create the actual bar
                 const bar = document.createElement('div');
                 bar.className = 'bar';
                 
-                // For ranking points (where lower is better)
-                // We need to invert the scale - lowest score gets 100% width
-                // Calculate percentage for each player based on best score
-                const barWidth = (minScore / player.score) * 100;
+                // Determine rank class based on number of digits
+                const rankDigits = String(index + 1).length;
+                if (rankDigits === 1) {
+                    bar.classList.add('rank-1digit');
+                } else if (rankDigits === 2) {
+                    bar.classList.add('rank-2digit');
+                } else if (rankDigits === 3) {
+                    bar.classList.add('rank-3digit');
+                } else if (rankDigits === 4) {
+                    bar.classList.add('rank-4digit');
+                } else if (rankDigits === 5) {
+                    bar.classList.add('rank-5digit');
+                } else if (rankDigits === 6) {
+                    bar.classList.add('rank-6digit');
+                } else if (rankDigits === 7) {
+                    bar.classList.add('rank-7digit');
+                } else {
+                    bar.classList.add('rank-more');
+                }
+                
+                // Calculate width based on player's score relative to max score
+                const barWidth = (player.score / maxScore) * 100;
                 bar.style.width = `${barWidth}%`;
                 
                 // Create player info container
@@ -196,10 +244,13 @@ with open('templates/leaderboard.html', 'w') as f:
                 playerName.className = 'player-name';
                 playerName.textContent = player.name;
                 
+                // Format score with commas for better readability
+                const formattedScore = player.score.toLocaleString();
+                
                 // Create score display
                 const score = document.createElement('div');
                 score.className = 'score';
-                score.innerHTML = `${player.score} <span class="subinfo">pts</span>`;
+                score.innerHTML = `${formattedScore} <span class="subinfo">pts</span>`;
                 
                 // Assemble the elements
                 playerInfo.appendChild(rank);
@@ -221,7 +272,7 @@ with open('templates/leaderboard.html', 'w') as f:
                 const data = await response.json();
                 
                 // Update match name
-                document.getElementById('match-name').textContent = data.match_name + " - Position-Based Ranking";
+                document.getElementById('match-name').textContent = data.match_name + " - Total Score Ranking";
                 
                 // Update players array with new data including avatars
                 players = Object.entries(data.scores).map(([name, score], index) => ({
@@ -231,8 +282,8 @@ with open('templates/leaderboard.html', 'w') as f:
                     avatar: data.avatars[name] || ""
                 }));
                 
-                // Sort players by score in ascending order (lower is better for ranking points)
-                players.sort((a, b) => a.score - b.score);
+                // Sort players by score in descending order (higher is better for total score)
+                players.sort((a, b) => b.score - a.score);
                 
                 // Update leaderboard
                 updateLeaderboard();
@@ -250,9 +301,8 @@ with open('templates/leaderboard.html', 'w') as f:
 
 # Global variables to store data
 match_name = ""
-user_ranking_points = defaultdict(int)  # Store ranking points (lower is better)
-player_map_count = defaultdict(int)     # Track how many maps each player has participated in
-player_avatars = {}                     # Store player avatar URLs
+user_total_scores = defaultdict(int)   # Store total scores (higher is better)
+player_avatars = {}                    # Store player avatar URLs
 
 # Initialize API
 client_id = int(os.getenv("CLIENT_ID"))
@@ -265,15 +315,15 @@ def index():
 
 @app.route('/api/scores')
 def get_scores():
-    # Return ranking points, avatars, and match name as JSON
+    # Return total scores, avatars, and match name as JSON
     return jsonify({
-        'scores': user_ranking_points,
+        'scores': user_total_scores,
         'avatars': player_avatars,
         'match_name': match_name
     })
 
 def update_total_scores(room_id):
-    global match_name, user_ranking_points, player_map_count, player_avatars
+    global match_name, user_total_scores, player_avatars
     
     try:
         match_response = api.match(room_id)
@@ -293,41 +343,20 @@ def update_total_scores(room_id):
                 print(f"Could not fetch avatar for {user.username}: {e}")
 
         # Reset scores before recalculating
-        user_ranking_points = defaultdict(int)
-        player_map_count = defaultdict(int)
+        user_total_scores = defaultdict(int)
 
         # Process each game (map)
         for event in match_response.events:
             match_game = event.game
             if match_game is not None:
-                # Get all scores for the current map and sort by score
-                map_scores = []
+                # Sum up total scores for each player
                 for score in match_game.scores:
                     player_name = user_id_to_name[score.user_id]
-                    map_scores.append((player_name, score.score))
-                    # Count maps played for each player
-                    player_map_count[player_name] += 1
+                    user_total_scores[player_name] += score.score
                 
-                # Sort scores for this map in descending order
-                map_scores.sort(key=lambda x: x[1], reverse=True)
-                
-                # Assign ranking points (position number) to each player
-                for position, (player_name, _) in enumerate(map_scores, 1):
-                    user_ranking_points[player_name] += position
-        
-        # Normalize scores for players who haven't played all maps
-        # (Optional) Uncomment if you want to penalize players who missed maps
-        """
-        max_maps = max(player_map_count.values()) if player_map_count else 1
-        for player in user_ranking_points:
-            if player_map_count[player] < max_maps:
-                # Add penalty points (e.g., last place + 1) for each missed map
-                user_ranking_points[player] += (len(user_ranking_points) + 1) * (max_maps - player_map_count[player])
-        """
-                
-        # Sort ranking points in ascending order (lower is better)
-        user_ranking_points = dict(sorted(user_ranking_points.items(), key=lambda item: item[1]))
-        print("Ranking points (lower is better):", user_ranking_points)
+        # Sort scores in descending order (higher is better)
+        user_total_scores = dict(sorted(user_total_scores.items(), key=lambda item: item[1], reverse=True))
+        print("Total scores (higher is better):", user_total_scores)
     except Exception as e:
         print(f"Error updating scores: {e}")
         traceback.print_exc()
@@ -352,9 +381,9 @@ def main():
     scheduler.start()
     
     # Start the Flask app
-    print("\n=== OSU! Multi Position-Based Leaderboard ===")
+    print("\n=== OSU! Multi Total Score Leaderboard ===")
     print(f"Connected to: {match_name}")
-    print("Position-based scoring system: Lower points = better rank")
+    print("Total score system: Higher points = better rank")
     print("\nOpen your browser to http://localhost:5000 to view the leaderboard")
     print("Add this URL as a browser source in OBS: http://localhost:5000")
     print("\nPress Ctrl+C to exit")
