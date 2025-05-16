@@ -6,6 +6,13 @@ Imagine you want to host a tournament/lan. You can use an elimination tournament
 This script listens for matches and displays total scores in real time.
 
 ## Setup
+Before running this script, you need to create an [OAuth client](https://osu.ppy.sh/docs/index.html#authentication)
+
+Then, copy and paste your client id and secret into a .env file:
+
+CLIENT_ID=...
+CLIENT_SECRET=...
+
 I highly recommend to use a Python virtual environment. To do so, run
 ```
 python3 -m venv .venv
