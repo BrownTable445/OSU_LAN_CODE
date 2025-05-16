@@ -13,7 +13,7 @@ Then, copy and paste your client id and secret into a .env file:
 CLIENT_ID=...
 CLIENT_SECRET=...
 
-I highly recommend to use a Python virtual environment. To do so, run
+I highly recommend using a Python virtual environment when running the script. To do so, run
 ```
 python3 -m venv .venv
 ```
