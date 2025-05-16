@@ -98,37 +98,37 @@ with open('templates/leaderboard.html', 'w') as f:
             z-index: 1;
         }
         
-        /* Different colors based on rank digits */
-        .rank-1digit {
-            background: linear-gradient(90deg, #FF6B6B, #FF0000); /* Red */
+        /* Different colors based on rank range */
+        .rank-1-999 {
+            background: linear-gradient(90deg, #FF0000, #FF6B6B); /* Red - Top players */
         }
         
-        .rank-2digit {
-            background: linear-gradient(90deg, #FFD166, #FF9900); /* Orange */
+        .rank-1000-9999 {
+            background: linear-gradient(90deg, #FF9900, #FFD166); /* Orange - Very good players */
         }
         
-        .rank-3digit {
-            background: linear-gradient(90deg, #06D6A0, #00AA7F); /* Green */
+        .rank-10000-49999 {
+            background: linear-gradient(90deg, #FFFF00, #FFFF99); /* Yellow - Good players */
         }
         
-        .rank-4digit {
-            background: linear-gradient(90deg, #118AB2, #073B4C); /* Blue */
+        .rank-50000-99999 {
+            background: linear-gradient(90deg, #00AA7F, #06D6A0); /* Green - Above average */
         }
         
-        .rank-5digit {
-            background: linear-gradient(90deg, #9B5DE5, #7209B7); /* Purple */
+        .rank-100000-499999 {
+            background: linear-gradient(90deg, #073B4C, #118AB2); /* Blue - Average */
         }
         
-        .rank-6digit {
-            background: linear-gradient(90deg, #F15BB5, #D90429); /* Pink */
+        .rank-500000-999999 {
+            background: linear-gradient(90deg, #7209B7, #9B5DE5); /* Purple - Below average */
         }
         
-        .rank-7digit {
-            background: linear-gradient(90deg, #2EC4B6, #00A896); /* Teal */
+        .rank-1000000-9999999 {
+            background: linear-gradient(90deg, #D90429, #F15BB5); /* Pink - Casual players */
         }
         
         .rank-more {
-            background: linear-gradient(90deg, #E9C46A, #E76F51); /* Amber/Coral */
+            background: linear-gradient(90deg, #E76F51, #E9C46A); /* Amber/Coral - Beginners or unranked */
         }
         
         .player-info {
@@ -192,6 +192,15 @@ with open('templates/leaderboard.html', 'w') as f:
             opacity: 0.8;
             margin-left: 5px;
         }
+        
+        .osu-rank {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
@@ -210,6 +219,29 @@ with open('templates/leaderboard.html', 'w') as f:
         let autoScrollInterval = null;
         let scrollSpeed = 1; // pixels per tick
         
+        // Function to get rank class based on player's OSU rank
+        function getRankClass(rank) {
+            if (!rank || rank === 0) return 'rank-more';
+            
+            if (rank >= 1 && rank <= 999) {
+                return 'rank-1-999';
+            } else if (rank >= 1000 && rank <= 9999) {
+                return 'rank-1000-9999';
+            } else if (rank >= 10000 && rank <= 49999) {
+                return 'rank-10000-49999';
+            } else if (rank >= 50000 && rank <= 99999) {
+                return 'rank-50000-99999';
+            } else if (rank >= 100000 && rank <= 499999) {
+                return 'rank-100000-499999';
+            } else if (rank >= 500000 && rank <= 999999) {
+                return 'rank-500000-999999';
+            } else if (rank >= 1000000 && rank <= 9999999) {
+                return 'rank-1000000-9999999';
+            } else {
+                return 'rank-more';
+            }
+        }
+        
         // Function to update the leaderboard display
         function updateLeaderboard() {
             const leaderboard = document.getElementById('leaderboard');
@@ -227,25 +259,8 @@ with open('templates/leaderboard.html', 'w') as f:
                 const bar = document.createElement('div');
                 bar.className = 'bar';
                 
-                // Determine rank class based on number of digits
-                const rankDigits = String(index + 1).length;
-                if (rankDigits === 1) {
-                    bar.classList.add('rank-1digit');
-                } else if (rankDigits === 2) {
-                    bar.classList.add('rank-2digit');
-                } else if (rankDigits === 3) {
-                    bar.classList.add('rank-3digit');
-                } else if (rankDigits === 4) {
-                    bar.classList.add('rank-4digit');
-                } else if (rankDigits === 5) {
-                    bar.classList.add('rank-5digit');
-                } else if (rankDigits === 6) {
-                    bar.classList.add('rank-6digit');
-                } else if (rankDigits === 7) {
-                    bar.classList.add('rank-7digit');
-                } else {
-                    bar.classList.add('rank-more');
-                }
+                // Determine rank class based on player's OSU rank
+                bar.classList.add(getRankClass(player.osuRank));
                 
                 // Calculate width based on player's score relative to max score
                 const barWidth = (player.score / maxScore) * 100;
@@ -276,6 +291,14 @@ with open('templates/leaderboard.html', 'w') as f:
                 const playerName = document.createElement('div');
                 playerName.className = 'player-name';
                 playerName.textContent = player.name;
+                
+                // Add OSU rank if available
+                if (player.osuRank && player.osuRank > 0) {
+                    const osuRankBadge = document.createElement('span');
+                    osuRankBadge.className = 'osu-rank';
+                    osuRankBadge.textContent = `#${player.osuRank.toLocaleString()}`;
+                    playerName.appendChild(osuRankBadge);
+                }
                 
                 // Format score with commas for better readability
                 const formattedScore = player.score.toLocaleString();
@@ -356,12 +379,13 @@ with open('templates/leaderboard.html', 'w') as f:
                 // Update match name
                 document.getElementById('match-name').textContent = data.match_name + " - Total Score Ranking";
                 
-                // Update players array with new data including avatars
+                // Update players array with new data including avatars and ranks
                 players = Object.entries(data.scores).map(([name, score], index) => ({
                     id: index,
                     name: name,
                     score: score,
-                    avatar: data.avatars[name] || ""
+                    avatar: data.avatars[name] || "",
+                    osuRank: data.ranks[name] || 0
                 }));
                 
                 // Sort players by score in descending order (higher is better for total score)
@@ -385,6 +409,7 @@ with open('templates/leaderboard.html', 'w') as f:
 match_name = ""
 user_total_scores = defaultdict(int)   # Store total scores (higher is better)
 player_avatars = {}                    # Store player avatar URLs
+player_ranks = {}                      # Store player OSU ranks
 
 # Initialize API
 client_id = int(os.getenv("CLIENT_ID"))
@@ -397,15 +422,16 @@ def index():
 
 @app.route('/api/scores')
 def get_scores():
-    # Return total scores, avatars, and match name as JSON
+    # Return total scores, avatars, ranks, and match name as JSON
     return jsonify({
         'scores': user_total_scores,
         'avatars': player_avatars,
+        'ranks': player_ranks,
         'match_name': match_name
     })
 
 def update_total_scores(match_id):
-    global match_name, user_total_scores, player_avatars
+    global match_name, user_total_scores, player_avatars, player_ranks
     
     try:
         match_response = api.match(match_id)
@@ -413,16 +439,22 @@ def update_total_scores(match_id):
 
         user_id_to_name = defaultdict(str)
         
-        # Collect user data including avatars
+        # Collect user data including avatars and ranks
         for user in match_response.users:
             user_id_to_name[user.id] = user.username
-            # Fetch and store the user's avatar URL
+            # Fetch and store the user's avatar URL and rank
             try:
                 user_data = api.user(user.id)
                 if hasattr(user_data, 'avatar_url') and user_data.avatar_url:
                     player_avatars[user.username] = user_data.avatar_url
+                
+                # Get the user's current rank from rank history
+                if hasattr(user_data, 'rank_history') and user_data.rank_history and user_data.rank_history.data:
+                    # Get the most recent rank (last element in the data array)
+                    player_ranks[user.username] = user_data.rank_history.data[-1]
+                    print(f"Player {user.username} rank: {player_ranks[user.username]}")
             except Exception as e:
-                print(f"Could not fetch avatar for {user.username}: {e}")
+                print(f"Could not fetch data for {user.username}: {e}")
 
         # Reset scores before recalculating
         user_total_scores = defaultdict(int)
@@ -470,6 +502,7 @@ def main():
     print("\n=== OSU! Multi Total Score Leaderboard ===")
     print(f"Connected to: {match_name}")
     print("Total score system: Higher points = better rank")
+    print("Players' bars are colored based on their global OSU rank")
     print("\nOpen your browser to http://localhost:5000 to view the leaderboard")
     print("Add this URL as a browser source in OBS: http://localhost:5000")
     print("\nPress Ctrl+C to exit")
